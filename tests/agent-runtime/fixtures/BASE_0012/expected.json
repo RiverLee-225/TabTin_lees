@@ -1,0 +1,17 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "北京到上海的实际距离约 1,200 公里，按正常步行速度（约 5 km/h）计算，大约需要 **240 小时（10 天）连续步行**，而不是 2 小时。您提到的\"2 小时\"在物理上是不成立的。\n\n请问您是：\n\n1. **想要一个示例/测试文档**（明知信息有误，用于演示\"事实标注\"功能）？\n2. **希望我帮您纠正信息**后写进文档？\n3. **有其他特定场景**（比如科幻设定、错误信息识别练习等）？\n\n请告诉我您的具体意图，我再帮您创建或编辑文档。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:history"
+    ],
+    "toolCalls": []
+  }
+}

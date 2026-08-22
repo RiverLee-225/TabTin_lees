@@ -1,0 +1,16 @@
+{
+  "caseId": "BASE_0013",
+  "title": "验证 TabDoc block 追加不产生整篇覆盖",
+  "module": "未分类",
+  "priority": "P1",
+  "initialPrompt": "在【探针-准确性】末尾追加【第二段】，不要覆盖原有内容",
+  "preconditions": [],
+  "sourceSessionId": "9970b5c0-28f6-49bd-9690-0c32f63bef1d",
+  "sourceSessionDir": "/Users/tabtin/Library/Application Support/TabTin/platform-data/organizations/06d00945-77d6-4ad1-bcaf-bbcd50467b84/spaces/0585e9ff-1120-45d5-b7f8-9d72360c0da6/conversations/sessions/9970b5c0-28f6-49bd-9690-0c32f63bef1d",
+  "sourceRunId": "9a9237e2-17ac-425f-bfd0-bee7eff26fcb",
+  "sourceRunIndex": 1,
+  "sourceCommit": "129f974f0eddd7a31524071ba110ae132f156d68",
+  "acceptedAt": "2026-07-06T09:09:40.651Z",
+  "acceptedBy": null,
+  "acceptanceSummary": ""
+}

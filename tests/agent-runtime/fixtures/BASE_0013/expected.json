@@ -1,0 +1,26 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "已在你文档《探针-准确性》的末尾追加了【第二段】，原有内容未做改动。文档版本已更新至第 4 版。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      }
+    ]
+  }
+}

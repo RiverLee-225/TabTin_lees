@@ -1,0 +1,73 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "已查到「客户清单」表，前 3 个客户名称如下：\n\n| 序号 | 客户名称 | 等级 |\n| :--- | :--- | :--- |\n| 1 | 张三 | a |\n| 2 | 莉丝 | — |\n| 3 | 网舞 | c |\n\n该表目前共 **4 条**记录，字段包含「姓名」和「等级」。如需查看完整清单或做进一步筛选，随时告诉我。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      }
+    ]
+  }
+}

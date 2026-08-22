@@ -1,0 +1,16 @@
+{
+  "caseId": "BASE_0016",
+  "title": "不存在路径",
+  "module": "未分类",
+  "priority": "P1",
+  "initialPrompt": "/nonexistent/path/xyz999.txt 并总结",
+  "preconditions": [],
+  "sourceSessionId": "be9a6600-5b18-4086-961f-b1dbd6e1f856",
+  "sourceSessionDir": "/Users/tabtin/Library/Application Support/TabTin/platform-data/organizations/06d00945-77d6-4ad1-bcaf-bbcd50467b84/spaces/0585e9ff-1120-45d5-b7f8-9d72360c0da6/conversations/sessions/be9a6600-5b18-4086-961f-b1dbd6e1f856",
+  "sourceRunId": "515b2d94-a47b-4e22-852b-871320e5b061",
+  "sourceRunIndex": 1,
+  "sourceCommit": "129f974f0eddd7a31524071ba110ae132f156d68",
+  "acceptedAt": "2026-07-06T12:38:38.391Z",
+  "acceptedBy": null,
+  "acceptanceSummary": ""
+}

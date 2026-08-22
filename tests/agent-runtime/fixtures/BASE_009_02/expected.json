@@ -1,0 +1,94 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "已创建文档「**客户摘要**」，内容如下：\n\n---\n\n# 客户摘要\n\n## 张三\n客户张三，等级为 **a**，属于高优先级客户。建议重点关注其需求跟进与服务体验，保持良好的合作关系。\n\n## 莉丝\n客户莉丝，当前暂无等级标注。建议后续补充完善客户分级信息，以便制定针对性的服务策略。\n\n## 网舞\n客户网舞，等级为 **c**。可根据其等级制定相应的服务频次与资源投入计划，确保客户满意度。\n\n---\n\n如需调整内容、补充更多客户信息或修改格式，随时告诉我。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:history",
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "write_file"
+      },
+      {
+        "name": "run_terminal_command"
+      }
+    ]
+  }
+}

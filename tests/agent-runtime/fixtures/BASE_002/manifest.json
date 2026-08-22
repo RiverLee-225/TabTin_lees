@@ -1,0 +1,14 @@
+{
+  "caseId": "BASE_002",
+  "title": "验证 Agent 对简单问候的直接回复（无工具调用）",
+  "module": "基础能力测试 / 对话",
+  "priority": "P2",
+  "initialPrompt": "hi",
+  "preconditions": [],
+  "sourceSessionId": "1e433ad1-873b-4f77-95ad-eff879048014",
+  "sourceSessionDir": "/Users/tabtin/Library/Application Support/TabTin/platform-data/organizations/ed9aa3bd-d8af-49e0-bd62-7c7d88ac7068/spaces/a0027d27-88e6-4600-9b80-63139d25da19/conversations/sessions/1e433ad1-873b-4f77-95ad-eff879048014",
+  "sourceCommit": null,
+  "acceptedAt": "2026-07-05T07:36:06.844Z",
+  "acceptedBy": null,
+  "acceptanceSummary": "人工确认 Agent 对 hi 直接给出问候回复，未调用工具"
+}

@@ -1,0 +1,30 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "系统正确拦截了非法 JSON，返回了验证错误：\n\n| 项目 | 结果 |\n|------|------|\n| 目标表格 | 花名册 (`bcf3c98f-...`) |\n| 传入数据 | `{name: 张三, age: }` |\n| 错误码 | `VALIDATION_ERROR` |\n| 错误信息 | `--data 必须是合法 JSON` |\n\n**没有写入任何记录。** 平台要求 `--data` 必须是合法 JSON（键需双引号、值不能为空）。如需正常插入，应使用格式如：\n\n```bash\n--data '{\"name\":\"张三\",\"age\":25}'\n```\n\n或者把长内容写入文件后用 `--data @data.json` 传入。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      }
+    ]
+  }
+}

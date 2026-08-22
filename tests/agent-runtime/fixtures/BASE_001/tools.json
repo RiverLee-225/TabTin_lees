@@ -1,0 +1,1523 @@
+[
+  {
+    "name": "create_file",
+    "description": "将 workspace 内**已存在**的文件发布为 chat artifact 卡片并自动打开。\n\n**不生成内容**——须先在工作区生成好 xlsx/docx/pptx/pdf 等最终文件，再用本工具 `relative_path` 发布。\n\n**只**接受 workspace 相对路径。**只**产出最终文件——不落 spec.json、不写脚本拼 spec、不要用文本写入能力写二进制 office/pdf。",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "description": "Workspace-relative file path, e.g. artifacts/report.xlsx."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Short user-visible title for the artifact card. Defaults to the filename."
+        },
+        "self_check_summary": {
+          "type": "string",
+          "description": "Short confirmation of the checks already performed before publishing."
+        }
+      },
+      "required": [
+        "relative_path"
+      ]
+    }
+  },
+  {
+    "name": "open_file",
+    "description": "Open (or re-open) an existing local file under the current Workspace as a chat artifact card. Use this to show a file the Agent already produced, or to re-open a previously created file. Pass only a Workspace-relative path; do not pass absolute paths. If self-check failed, do not call this tool.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "description": "Workspace-relative file path, e.g. artifacts/report.xlsx."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Short user-visible title for the artifact card. Defaults to the filename."
+        },
+        "self_check_summary": {
+          "type": "string",
+          "description": "Short confirmation of the checks already performed before publishing."
+        }
+      },
+      "required": [
+        "relative_path"
+      ]
+    }
+  },
+  {
+    "name": "read_raw_ref",
+    "description": "Read a bounded slice of raw evidence referenced by a model projection. Only tool-log:// refs for the current session are allowed. Use grep, offset, and max_chars to avoid loading full logs.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "raw_ref": {
+          "type": "string",
+          "maxLength": 360,
+          "description": "Raw evidence reference, e.g. tool-log://<session_id>/<tool_call_id>."
+        },
+        "grep": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional case-insensitive substring filter applied line-by-line before slicing."
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optional character offset after grep filtering."
+        },
+        "max_chars": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000,
+          "description": "Maximum characters to return. Defaults to 4000; capped at 20000."
+        }
+      },
+      "required": [
+        "raw_ref"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "run_terminal_command",
+    "description": "在 workspace 目录执行 shell 命令。默认工作目录 = workspace；切目录用 `cd /path && <cmd>` 或 `$TABTIN_WORKSPACE` 环境变量（runtime 自动注入）。\n\n**TabTin 平台能力**：browser / table / doc / slide / memo / video / tracker / fetch 等业务能力通过平台 CLI 触达（可用命令见 system prompt 中的 CLI 能力说明）。\n\n**返回 union（看 `status` 分流）**：\n- `completed`：wait_ms 内退出。stdout > 30KB 时只给头尾 preview + `full_output_path`，按路径按需读取完整输出。\n- `running`：wait_ms 用完命令仍在跑（**进程不会被杀**）。带 `pid` / `output_file`；完成时 push 通知激活下一轮 turn。看进度读 `output_file`；停掉用 `kill <pid>`。\n- `failed`：spawn / 受限 / hardline。按 `error_kind` + `hint` 处理。\n\n**等待场景**：\n- 等 exit_code → `wait_ms=60000`（默认；上限 300000）\n- 后台任务 → 不用主动等，push 通知会激活\n- 等特定输出 → `wait_ms=30000, pattern=\"X\"`\n- 等外部服务 → `until curl -f http://localhost:3000/health; do sleep 1; done`\n- 等文件出现 → `while [[ ! -f /tmp/done ]]; do sleep 1; done`\n\n**长任务 / 大输出 `wait_ms: 0`**：大型构建、整盘 du、全量日志等直接 background 化。\n\n**禁止用 shell 替代平台 CLI / 专用 FC**：\n- workspace 内按路径/内容/含义搜索、读写本地文件、跟用户对话（不要 echo/printf）——常见 shell 搜索命令会被 sandbox 拦截。\n- 抓 URL 正文 → `tabtin fetch <url>`（**禁 curl / wget / python urllib / node https**——绕过平台抓取链路、无正文解析、sandbox 常屏蔽）。\n- 浏览器操作（列标签 / 打开 URL / 取正文 / 落表）→ `tabtin browser ...`（**禁 osascript / ps aux / xdotool / 裸 browser**——走平台 CLI 才能触达已连接的浏览器扩展）。\n- 创建结构化文件（csv / json / yaml / xlsx 等）→ `tabtin file create`（**禁 cat > file / printf > file / python csv / node fs.writeFileSync**——那只落本地文件，不进平台、不渲染、用户看不到）。\n\n**禁交互命令**（stdin 阻塞 = timeout）：\n- `sudo` / 裸 `git commit` / `git rebase -i` / 开 editor 的 merge → 非交互 flag 或让用户手动跑\n- 包管理器 → 必须 `-y` / `--yes` / `--no-input`\n- `vim` / `less` / `more` → 改用文件读写专用 FC\n- REPL 形态 ssh/mysql/psql → single-shot（`ssh -T host \"cmd\"` / `psql -c \"SQL\"`）\n- pager → `--no-pager` 或 `| cat`",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "要执行的命令"
+        },
+        "description": {
+          "type": "string",
+          "description": "主动语态简述这个命令在做什么（让 LLM 决定参数前先沉淀意图，避免直接写 raw command）。简单命令 5-10 字（`ls` → \"列出当前目录\"），管道 / 不常见 flag 加足够上下文（譬如 `find . -name \"*.tmp\" -exec rm {} \\;` → \"递归删除所有 .tmp 文件\"）。"
+        },
+        "wait_ms": {
+          "type": "number",
+          "description": "本次 tool_call 最多阻塞等待多少毫秒。默认 60000，范围 [0, 300000]，越界自动 clamp。\n\n**超时不杀进程**：到期任务仍在跑 → 返 `status: \"running\"` + session_id + pid + output_file，命令继续在后台跑。任务完成时 push 通知会激活下一轮 turn。\n\n**取值**：`0` = 立即背景化（dev server / log tail）；`30000-60000` = build / test / 中等命令；`300000` = 大型迁移 / 整盘 dump。"
+        },
+        "hard_timeout_ms": {
+          "type": "number",
+          "description": "命令真死线（毫秒）。到点发 SIGTERM 杀进程，返回 `status:\"completed\"` + `killed_reason:\"hard_timeout\"`。不传 = 无硬死线（默认 6 小时后发提醒、12 小时自动兜底）。推荐传：快命令 600000、构建 / 测试 1800000、长驻服务 86400000。"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "可选 regex（≤200 字符）。命中即提前返回 `status:\"running\"` + `pattern_matched`，不必等 `wait_ms`。典型场景：起服务时传命中 ready 字串的模式，检测端口就绪后立即继续。ReDoS（单次执行超 100ms）会被拒绝。"
+        },
+        "env": {
+          "type": "object",
+          "description": "可选的额外环境变量（清洗后注入）。key / value 必须是字符串。**绝不**塞不希望被记录的密钥——改用 Skill 凭证机制。",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "skills_read",
+    "description": "按 `canonical key` 读本地 skill 的完整 `SKILL.md` 正文。key 形如 `user:code-style-check`、`app:tabcode/code-review`、`platform:<slug>`，来自 `<skills>` 段或搜索结果。不支持 `section` 参数，不要尝试按 Markdown 标题段读取。\n\n`ext:` / `tin:` 前缀**只在线模式可用**，本地模式让用户切换到在线 agent。\n\n**用途**：执行某流程前**查阅** skill 说明书；核对 skill 是否存在。\n**不是**：把 skill 指令注入对话并强制遵循执行（那是 invoke 类操作）。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "`<skills>` 段展示的完整规范 key（譬如 `user:code-style-check` 或 `app:tabcode/code-review`）。必须精确匹配。"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "skills_search",
+    "description": "按关键词搜本地 skill（在 `name` / `description` / `slug` / `when_to_use` 上做全文子串匹配）。返回匹配的 skill 及其 `canonical key`（不含正文）。\n\n**用途**：`<skills>` 段没出现的 skill、创建前查重、需要 skill 显示名。\n**不是**：列出全部 skill（看 `<skills>` 段）；读取或执行 skill 正文。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "关键字，在 skill 的 `name` / `description` / `slug` / `when_to_use` 上做大小写不敏感全文子串匹配。"
+        },
+        "limit": {
+          "type": "number",
+          "description": "返回匹配项的最大数量（默认 10，上限 50）。"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "ask_user",
+    "description": "让用户从 2-4 个具体选项里选一个。最适合方向性分叉（架构选型、技术栈、命名、范围等答案可枚举的决策点）。\n\n**4 种典型场景**：\n1. 收集用户偏好或需求\n2. 澄清模糊的指令\n3. 在工作过程中拿到实现层面的决策\n4. 给用户提供\"接下来往哪走\"的选项\n\n**选项规范**：\n- 每个选项必须同时给 `label`（≤5 词短标签）+ `description`（说明\"选这个会发生什么 / 取舍是什么\"）。\n- 系统自动注入 \"Other\" 选项让用户自由输入——**不要**自己加。\n- 如果你推荐某个选项，把它放在第一个，label 末尾加 `(Recommended)`。\n- 互斥方案用单选；可组合的特性用 `allow_multiple: true`。\n- 一次调用最多 1-4 个相关问题（紧密相关的决策合并到同一次调用，节省往返）。\n\n**本工具用于**：用户从有限**选项**里选。\n**不是**：让用户填写密码 / URL / 多个文本字段；也不是对已决定动作的批准/拒绝。\n\n**什么时候不用**：\n- 答案能从上下文合理推断时——直接执行，不要反复确认。\n- 不要把本工具当成遇到摩擦的第一反应；先调研、试一下。\n- 简单 yes/no 用自然语言问就行——只在 UI 必须阻塞等答案时才调本工具。\n- 写不出具体的 `prompt` / `label` / `description` 时，用纯文本回答，不要强行调本工具凑选项。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "本问题的稳定标识符（UI / 响应 payload 用来对应答案）。"
+              },
+              "prompt": {
+                "type": "string",
+                "minLength": 1,
+                "description": "要问用户的完整问题。清晰、具体、以问号结尾。"
+              },
+              "header": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 12,
+                "description": "极简标签（≤12 字符），UI 显示为 chip / tag。譬如\"认证方式\" / \"库\" / \"方案\"。"
+              },
+              "options": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 4,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "本选项的稳定标识符（UI 用来追踪选择）。"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "用户看到并选择的显示文案。简洁（1-5 词）描述选项。"
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "本选项的含义或选中后会发生什么。用来传达取舍 / 影响等上下文。"
+                    },
+                    "preview": {
+                      "type": "string",
+                      "description": "可选预览内容，选项聚焦时渲染（譬如 ASCII mockup / 代码片段 / 图示变体），方便对比选项。"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label",
+                    "description"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "可选项（2-4 个）。每个选项应彼此互斥，除非 allow_multiple=true。不要加 \"Other\" 选项，系统会自动追加。"
+              },
+              "allow_multiple": {
+                "type": "boolean",
+                "default": false,
+                "description": "设为 true 允许用户多选；适合选项之间不互斥的场景。"
+              }
+            },
+            "required": [
+              "id",
+              "prompt",
+              "header",
+              "options"
+            ],
+            "additionalProperties": false
+          },
+          "description": "要问用户的问题（1-4 个）。"
+        },
+        "title": {
+          "type": "string",
+          "description": "可选的问题卡片整体标题（面向用户）。缺省时 UI 用默认本地化标题。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "questions"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "ask_form",
+    "description": "让用户填多个具体字段（文本 / 数字 / URL / 凭证 / 日期等不可枚举为选项的值）。\n\n**用法**：\n- 每个文本类字段必须有非空的 `description` 或 `placeholder`，让用户知道该填什么形式。\n- 只合并属于**同一表单**的字段（譬如\"域名 + 上线日期 + 关键词\"）；跨主题的字段拆成多次。\n- 字段类型用 `input` / `number` / `textarea` / `select` / `multiselect` / `upload` / `toggle` / `slider` / `color` / `tags` / `group` 之一。\n\n**本工具用于**：用户需提供具体值的多字段表单。\n**不是**：从 2-4 个选项里选；也不是对已决定动作的批准/拒绝（审批不带可填字段）。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "表单的具体标题（面向用户）。"
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "description": "用户看到的字段名或问题（必填）。"
+              },
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "description": "字段稳定标识键；可省略，会从字段名自动生成。"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "description": "`label` 的别名；会归一化为字段名。"
+              },
+              "prompt": {
+                "type": "string",
+                "minLength": 1,
+                "description": "`label` 的别名；适合把问题句写成表单字段。"
+              },
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "description": "`label` 的别名；适合把问题句写成表单字段。"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "description": "`label` 的别名；会归一化为字段名。"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "`key` / `label` 的别名；没有 label 时也可作为字段名。"
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "`key` 的别名；会归一化为字段稳定标识键。"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "input",
+                  "number",
+                  "textarea",
+                  "select",
+                  "multiselect",
+                  "upload",
+                  "toggle",
+                  "slider",
+                  "color",
+                  "tags",
+                  "group"
+                ],
+                "default": "input",
+                "description": "控件类型，默认单行文本。"
+              },
+              "placeholder": {
+                "type": "string",
+                "description": "输入框占位提示；文本类可省略，会用字段名兜底。"
+              },
+              "description": {
+                "type": "string",
+                "description": "字段说明（与占位提示二选一即可）。"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "选项显示文案。"
+                    },
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "选项值标识符；可省略，会从显示文案自动生成。"
+                    }
+                  },
+                  "required": [
+                    "label"
+                  ]
+                },
+                "description": "下拉或多选时的选项列表。"
+              }
+            }
+          },
+          "description": "表单字段数组；每项至少含 `label`，或含 `prompt` / `question` / `text` / `title` / `name` 之一作为字段名；禁止空对象 `{}`。例：`[{\"label\":\"今天的目标\",\"type\":\"textarea\"}]`"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "title",
+        "fields"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "request_approval",
+    "description": "让用户对你**已经决定**的方案 / 动作做批准 / 拒绝。批准则放行那个已描述的动作；拒绝表示中止并重新考虑。\n\n**用法**：\n- 必须给清晰的 `summary` 说明\"会发生什么\"——不要含糊，用户照 summary 决定批不批准。\n- 必填 `risk_level`：`safe`（无破坏性的常规操作）/ `review`（值得用户过一眼）/ `high`（破坏性 / 外部 / 不可逆动作必填 high）。risk_level 驱动 UI 警示等级。\n- **不要带可填字段**——本工具是审批不是填表。\n- 必须用户明确批准才能执行（删除、不可逆部署、大重构、调用外部 API 改数据等场景必须先批准再做）。\n\n**本工具用于**：对已决定动作的批准/拒绝。\n**不是**：让用户从选项里选；也不是让用户填写密码 / URL 等具体值。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "审批卡片的具体标题（面向用户）。"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "description": "解释为什么本方案 / 动作需要用户批准。"
+        },
+        "risk_level": {
+          "type": "string",
+          "enum": [
+            "safe",
+            "review",
+            "high"
+          ]
+        },
+        "details": {
+          "description": "只读的结构化详情，展示给用户看；不是表单。"
+        },
+        "submit_label": {
+          "type": "string"
+        },
+        "decline_label": {
+          "type": "string"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "title",
+        "rationale",
+        "risk_level"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "todo_write",
+    "description": "更新 todo 列表，用来规划和跟踪复杂的多步任务。3 步以上的任务用它来展示进度；同一时间最多只能有一个 task 是 in_progress。merge=true 按 id 更新已有 task；merge=false 整体替换。简单的单步任务或纯闲聊**不要**用。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "merge": {
+          "type": "boolean",
+          "description": "`true` = 按 `id` 合并到现有列表；`false` = 整体替换。"
+        },
+        "todos": {
+          "type": "array",
+          "description": "todo 列表。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "唯一标识符。"
+              },
+              "content": {
+                "type": "string",
+                "description": "todo 的描述文本。"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "in_progress",
+                  "completed",
+                  "cancelled"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "content",
+              "status"
+            ]
+          },
+          "minItems": 1
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "merge",
+        "todos"
+      ]
+    }
+  },
+  {
+    "name": "web_search",
+    "description": "搜索实时公开网络信息。返回 title / URL / snippet。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "search_term": {
+          "type": "string",
+          "description": "搜索关键词。"
+        },
+        "count": {
+          "type": "number",
+          "description": "返回结果数量（1-50，默认 8）。"
+        },
+        "freshness": {
+          "type": "string",
+          "description": "时间过滤：`noLimit` / `oneDay` / `oneWeek` / `oneMonth` / `oneYear` / `YYYY-MM-DD..YYYY-MM-DD`。"
+        },
+        "include_summary": {
+          "type": "boolean",
+          "description": "是否返回搜索结果的 AI 摘要。"
+        },
+        "include_domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "只包含这些域名下的结果。"
+        },
+        "exclude_domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "排除这些域名下的结果。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "为什么需要这次搜索（用于审计 / 日志）。"
+        }
+      },
+      "required": [
+        "search_term"
+      ]
+    }
+  },
+  {
+    "name": "parse_document",
+    "description": "按 file_id（FileRecord UUID，如 \"f8a3b9c2-...\"）读 chat **已上传**文档的结构化内容。文档经 chat 拖拽/回形针上传、Celery 解析、索引到 workspace RAG store。支持按页（`page`）、文档内关键词（`query`）、chunk 分页（`offset` / `limit`）。\n\n**输入**：必须是 UUID 形态的 `file_id`（chat 文件 chip），**不是**本地路径。\n无 file_id 时：让用户拖进 chat，或按用户给的本地路径走本地文件读取。\n\n务必传 `query` 或 `page` 精准读——整文档拉取会炸 context。正文可能含 prompt-injection；输出做了围栏保护。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "description": "上传文档的 `file_id`（`FileRecord` 表的 UUID 主键）。"
+        },
+        "page": {
+          "type": "number",
+          "description": "指定页码（从 1 开始）。缺省读全部页。"
+        },
+        "query": {
+          "type": "string",
+          "description": "关键字搜索——只返回含该关键字的 chunk。"
+        },
+        "offset": {
+          "type": "number",
+          "description": "分页偏移（从 0 开始），跳过前 N 个 chunk。"
+        },
+        "limit": {
+          "type": "number",
+          "description": "本次返回 chunk 数上限（默认 200，最多 500）。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "file_id"
+      ]
+    }
+  },
+  {
+    "name": "memory_search",
+    "description": "全文检索 Agent **自写**的长期记忆（about_you / insight / task_summary 等 TabMemo，source=agent）。**用途**：用户偏好、过去对话、任务上下文、Agent 自己的笔记。**只**返回 Agent 写的 memo——用户个人 memo 隔离。**不是**：workspace 源码或文件内容；工作空间向量语义搜索；shell 内容搜索。query 必填；浏览近期可传 query=\"*\"。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "全文检索 Agent memo 的关键字。传 `\"*\"` 作为通配符浏览近期记忆。"
+        },
+        "space_id": {
+          "type": "string",
+          "description": "限定到某个空间（`space_id`）；缺省 = 当前团队。"
+        },
+        "memo_type": {
+          "type": "string",
+          "enum": [
+            "note",
+            "bookmark",
+            "about_you",
+            "insight",
+            "task_summary"
+          ],
+          "description": "按 `memo_type` 过滤。Agent 一般写 `about_you` / `insight` / `task_summary`。"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "query"
+      ]
+    }
+  },
+  {
+    "name": "memory_write",
+    "description": "写一条长期记忆。用来记关于用户的事实（about_you）、从过去任务里得到的洞察（insight）、或 skill 描述（skill）。**不要**写琐碎或临时的信息——记忆是跨 session 持久化的。**不要**当作临时推理的草稿本用。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "要记忆的 markdown 正文（推荐）或纯文本。"
+        },
+        "space_id": {
+          "type": "string",
+          "description": "把 memo 绑定到此空间（`space_id`）；缺省 = 个人 / 团队范围。"
+        },
+        "memo_type": {
+          "type": "string",
+          "enum": [
+            "about_you",
+            "insight",
+            "task_summary"
+          ],
+          "default": "insight",
+          "description": "memo 类型：`about_you`（用户事实）/ `insight`（学到的模式）/ `task_summary`。"
+        },
+        "importance": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "可选重要性提示（1-5）。"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "可选标签列表。"
+        },
+        "source_url": {
+          "type": "string",
+          "description": "可选来源链接（譬如 `thread://session_id`）。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "content"
+      ]
+    }
+  },
+  {
+    "name": "memory_delete",
+    "description": "归档一条记忆（软删除；用户可在 TabMemo UI 恢复）。记忆过期、或用户明确要求忘掉某事时用。先用 memory_search 找到 memo_id。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "memo_id": {
+          "type": "string",
+          "description": "要归档（软删除）的 memo UUID。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "memo_id"
+      ]
+    }
+  },
+  {
+    "name": "credential_lookup",
+    "description": "按 domain（网站登录）或 app package（应用登录）查找已保存的凭证。**只**返回匹配的元数据（id / url / username / masked_password）。每条包含 credential_type；把 id 和 credential_type 传给 credential_retrieve 来验证可用性并拿到安全 handle。浏览器网站优先用宿主托管的自动填充。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "要匹配的网站域名（譬如 `github.com` 或 `login.github.com`）。"
+        },
+        "app_package": {
+          "type": "string",
+          "description": "应用包名（譬如 `com.twitter.android`）。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      }
+    }
+  },
+  {
+    "name": "credential_retrieve",
+    "description": "验证已保存的凭证并返回一个安全 handle。输入：credential_lookup 给的 credential_id、credential_type（\"website\" | \"app\"）。凭证秘密**永远不会**返回在 ToolResult.content 里。用宿主托管的自动填充或 skill runtime 凭证注入；没有安全的注入路径时，停下来让用户手动完成那一步登录。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "credential_id": {
+          "type": "string",
+          "description": "要验证的凭证 UUID。"
+        },
+        "credential_type": {
+          "type": "string",
+          "enum": [
+            "website",
+            "app"
+          ],
+          "description": "必填：必须与 credential_lookup 返回的 type 一致。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "credential_id",
+        "credential_type"
+      ]
+    }
+  },
+  {
+    "name": "present_to_user",
+    "description": "把结构化富内容以交互 UI 块展示给用户。每个 item 需要 \"kind\"：image / table_preview / resource_ref / file 四种预定义类型之一。resource_ref 用于展示已有平台资源卡片，标准形态：{ kind: \"resource_ref\", resource_type: \"table\", resource_id: \"<tableId>\", summary: \"...\" }。也兼容常见别名 { kind: \"resource_ref\", ref: \"<id>\", metadata: { type: \"table\" }, summary: \"...\" }。**用途**：内容能塞进这四种 kind 的一次性展示。**不是**：自由形态 SVG / 流程图 / mockup；需要用户后续编辑的表 / 文档 / 演示（用平台 CLI 创建）。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Presentation item. For resource_ref, use { kind: \"resource_ref\", resource_type: \"table\", resource_id: \"<tableId>\", summary: \"...\" }. The runtime also accepts the common alias shape { kind: \"resource_ref\", ref: \"<id>\", metadata: { type: \"table\" }, summary: \"...\" } and normalizes it."
+          },
+          "minItems": 1,
+          "description": "要展示的内容块数组（kind 取值：`image` / `table_preview` / `resource_ref` / `file`）。`resource_ref` 标准形态：`{ kind: \"resource_ref\", resource_type: \"table\", resource_id: \"<tableId>\", summary: \"...\" }`。"
+        },
+        "summary": {
+          "type": "string",
+          "description": "展示内容的简短文本摘要。"
+        },
+        "title": {
+          "type": "string",
+          "description": "可选的内容块标题。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "items",
+        "summary"
+      ]
+    }
+  },
+  {
+    "name": "show_widget",
+    "description": "在 chat 里渲染内联视觉 widget（架构图、流程图、状态卡片、对比视图），从 LLM token 流式生成。**用途**：自由形态 svg / html / mermaid 可视化；空间化表达比文字更清晰时。画前读 canonical skill `platform:visualization/tabtin-widget`。**不是**：image / table_preview / resource_ref / file 四类预定义展示块。必填：`summary`（移动端 fallback / a11y）、`format: \"svg\" | \"html\" | \"mermaid\"`、`code`。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "可选的 widget 标题，显示在画布上方。"
+        },
+        "summary": {
+          "type": "string",
+          "description": "必填。给移动端兜底显示 + 无障碍标签用的人类可读描述。"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "svg",
+            "html",
+            "mermaid"
+          ],
+          "description": "widget 格式。`svg`：自由绘图；`html`：静态无脚本 UI mockup；`mermaid`：流程图 / 时序图 / ER 图（运行时编译成 SVG）。"
+        },
+        "loading_message": {
+          "type": "string",
+          "description": "LLM 流式生成 widget code 期间显示给用户的占位文案。必须在 `code` 字段**之前**流出，否则会被 SVG iframe 覆盖。"
+        },
+        "code": {
+          "type": "string",
+          "description": "widget 源码。SVG：完整 `<svg>` 元素含 `viewBox`。HTML：静态片段或文档，禁含 `<script>` / `<iframe>` / `<object>` / `<embed>` / `<form>` 标签。Mermaid：源码会被编译为 SVG。"
+        },
+        "group_id": {
+          "type": "string",
+          "description": "可选的 group id，把多个 widget 聚合到一张卡片。"
+        },
+        "group_title": {
+          "type": "string",
+          "description": "可选的 group 标题，显示在聚合 widget 上方。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "summary",
+        "format",
+        "code"
+      ]
+    }
+  },
+  {
+    "name": "present_task_episode",
+    "description": "Emit a generic task episode progress card for the chat timeline. Use this for task-level progress/result summaries with collapsed technical evidence; do not put browser extraction logic in this tool.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "description": "Stable id for this task episode. Reuse the same id when updating a running episode."
+        },
+        "episode_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Generic episode type, for example \"browser_to_table\". Do not encode UI-specific behavior here."
+        },
+        "goal": {
+          "type": "string",
+          "minLength": 1,
+          "description": "User-facing goal of the episode."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "running",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ],
+          "description": "Current episode status."
+        },
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "running",
+                  "succeeded",
+                  "failed",
+                  "cancelled",
+                  "recovered"
+                ]
+              },
+              "summary": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Flat ordered stage list. Nested substeps are intentionally out of scope for ATE-2."
+        },
+        "user_message": {
+          "type": "string",
+          "description": "User-language result or failure explanation shown before technical evidence."
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "User-facing warnings that do not stop the episode."
+        },
+        "recoveries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Recoveries applied while completing the task."
+        },
+        "primary_artifact": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "minLength": 1
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ref": {
+              "type": "string"
+            },
+            "placeholder": {
+              "type": "boolean"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "kind",
+            "label"
+          ],
+          "description": "Primary artifact reference or placeholder, such as a future TabData table.",
+          "additionalProperties": false
+        },
+        "artifact_refs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ref": {
+                "type": "string"
+              },
+              "placeholder": {
+                "type": "boolean"
+              },
+              "metadata": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "kind",
+              "label"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "technical_evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ref": {
+                "type": "string"
+              },
+              "placeholder": {
+                "type": "boolean"
+              },
+              "metadata": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "kind",
+              "label"
+            ],
+            "description": "Raw logs, commands, trace ids, or other technical evidence. UI keeps this collapsed by default.",
+            "additionalProperties": false
+          }
+        },
+        "capture_scope": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "dataset": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "import_result": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "follow_up_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "started_at": {
+          "type": "string",
+          "description": "ISO timestamp. Defaults to now."
+        },
+        "completed_at": {
+          "type": "string",
+          "description": "ISO timestamp for succeeded/failed/cancelled episodes. Defaults to now for terminal statuses."
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "episode_type",
+        "goal",
+        "status",
+        "stages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "read_file",
+    "description": "从本地文件系统读文件。\n\n**输入**：绝对路径或 workspace 相对路径。**不是** chat 上传文档的 `file_id` UUID。\n\n用法：\n- 不传 offset/limit 时**默认从第 1 行读 2000 行**。超出时结果末尾有 `<system-reminder>` 给 total lines + 续读 offset。\n- 返回 `cat -n` 格式：行号 + tab + 内容。**行号前缀仅显示用**，做精确字符串替换前必须剥掉行号 + tab，否则 OLD_STRING_NOT_FOUND。\n- **完整读取两信号**：(1) `<system-reminder>This file has X total lines...` → 未读完；(2) `<persisted-output>...Full output saved to: <path>...` → 完整内容在该路径，用本工具 path + offset/limit 按需读。两信号皆无才能断言已读全。\n- 末尾 `... (line truncated to 2000 chars)` = 单行过长（minified JS / 巨型日志）——不要 retry / 不要改 offset。\n- 支持 PDF / DOCX / XLSX / PPTX / EPUB 本地解析为纯文本；图片可视化返回（大图自动缩放）。\n- 图片 banner 含 `resized from ...` = 已缩放到长边 2048px。**细节看不清是缩放结果，不要本地重读**——建议拖到 chat 走云端解析。\n- 路径是目录时返回前 200 条文件名 + total_count reminder。\n- 可读 shell 返回的 `full_output_path` / `output_file` 查看后台命令输出。\n\n失败处理：以 envelope `hint` / `error_kind` 为准（加密 / magic-mismatch / 扫描 PDF 等各有指引）。**不要重试**、不要自创兜底——envelope 是真相源。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "文件路径（绝对路径或 workspace 相对路径）。"
+        },
+        "offset": {
+          "type": "number",
+          "description": "起始行（从 1 开始；负数 = 从末尾倒数）。"
+        },
+        "limit": {
+          "type": "number",
+          "description": "最多读多少行。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "edit_file",
+    "description": "在文件里做精确字符串替换。\n\n用法：\n- **强烈建议**：编辑前在同一对话里先用 read_file 读目标文件，这样 old_string 可以从读出的内容里逐字复制——避免凭印象写虚构 old_string 失败（OLD_STRING_NOT_FOUND）。\n- 从 read_file 输出里取文本时，保留**行号前缀之后**的精确缩进（tab / 空格）。行号前缀格式是：行号 + tab（如 \"14\\t\"），之后才是实际文件内容。**不要**把行号前缀的任何部分塞进 old_string 或 new_string。\n- **new_string 按字面写入文件**：runtime 不会自动调整你给的缩进风格 / 引号风格 / 行尾。Python / Go 等 tab 缩进项目里写 new_string 时**必须用 tab**——给 4 空格会让该行变成空格、其他行仍是 tab，混合缩进让代码无法运行。引号同理：保持文件原本的风格（ASCII vs curly）。\n- **优先**编辑代码库里已有的文件。**不要**创建新文件，除非明确要求。\n- 只在用户明确要求时才用 emoji。除非要求，否则不要给文件加 emoji。\n- 如果 old_string 在文件里**不唯一**，编辑会失败。要么提供更大的字符串带更多上下文让它唯一，要么用 replace_all=true 替换所有出现。\n- replace_all 用于替换 / 重命名跨文件的字符串。重命名变量时特别有用。**注意：replace_all 要求 old_string 跟文件内容字面完全一致**——遇到引号 / 缩进风格不确定时，先用 read_file 复制原样，不要靠 runtime 兜底匹配。\n- old_string 和 new_string 必须不同。\n- 编辑 `.md` / `.mdx` 文件时，trailing whitespace 有语义（双 trailing space = Markdown hard line break），保留原样不要主动删除。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "文件路径。"
+        },
+        "old_string": {
+          "type": "string",
+          "description": "要查找的文本。"
+        },
+        "new_string": {
+          "type": "string",
+          "description": "替换后的文本。"
+        },
+        "replace_all": {
+          "type": "boolean",
+          "description": "替换所有出现位置。",
+          "default": false
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "path",
+        "old_string",
+        "new_string"
+      ]
+    }
+  },
+  {
+    "name": "write_file",
+    "description": "把文件写入本地文件系统（文本 / 源码）。\n\n用法：\n- 路径上已有文件时会被覆盖。\n- 写已有文件前**强烈建议**先了解当前内容。外部改动后可能 STALE_READ（errorCode=7）拒绝。\n- 已有文件的小块变更用精确字符串替换；本工具用于**新建**或**整文件重写**。\n- **不是** office/pdf/xlsx/docx/pptx 等二进制产物——勿用本工具写二进制 office/pdf。\n- **不要**主动创建 *.md / README，除非用户明确要求。\n- 除非用户要求，不要写 emoji。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "文件路径。"
+        },
+        "contents": {
+          "type": "string",
+          "description": "要写入的内容。"
+        },
+        "append": {
+          "type": "boolean",
+          "description": "追加到文件末尾，而不是覆盖。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "path",
+        "contents"
+      ]
+    }
+  },
+  {
+    "name": "delete_file",
+    "description": "删除指定路径的单个文件。\n\n用法：\n- **仅支持单文件**。删除目录请用 run_terminal_command 调 `rm -rf <dir>`——本工具会显式拒绝目录路径。\n- 文件不存在时优雅失败（视为已删除，不报错）。\n- 删除是不可恢复的，但本次对话的所有文件变更会被自动 checkpoint，用户可通过\"撤销这次 AI 操作\"回退。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "要删除的文件绝对路径或 workspace 相对路径。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "grep_search",
+    "description": "按 regex 在 workspace 文件**内容**中搜索。**用途**：精确文本 / 正则定位。**不是**：按文件名模式找文件；按自然语言含义探索；Agent 长期记忆；shell `grep`/`rg`（会被 sandbox 拦截）。默认 output_mode=\"files_with_matches\"；看匹配行传 \"content\"。默认单行匹配；跨行传 multiline:true。字面量 `{}` 等需 escape（如 `interface\\{\\}`）。大结果用 head_limit + offset 翻页。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "description": "要搜索的 regex 模式。"
+        },
+        "path": {
+          "type": "string",
+          "description": "搜索路径（文件或目录）。"
+        },
+        "glob": {
+          "type": "string",
+          "description": "文件过滤 glob，譬如 `*.ts` / `*.{ts,tsx}`。"
+        },
+        "type": {
+          "type": "string",
+          "description": "文件类型过滤（rg --type），譬如 `js` / `py` / `rust`。"
+        },
+        "case_insensitive": {
+          "type": "boolean",
+          "description": "大小写不敏感搜索（rg -i）。",
+          "default": false
+        },
+        "context_lines": {
+          "type": "number",
+          "description": "每个匹配前后的上下文行数（rg -C）。"
+        },
+        "after_context": {
+          "type": "number",
+          "description": "每个匹配后的行数（rg -A）。"
+        },
+        "before_context": {
+          "type": "number",
+          "description": "每个匹配前的行数（rg -B）。"
+        },
+        "multiline": {
+          "type": "boolean",
+          "description": "启用多行匹配（rg -U，让 `.` 也匹配换行）。",
+          "default": false
+        },
+        "output_mode": {
+          "type": "string",
+          "description": "输出模式：`content` / `files_with_matches` / `count`。"
+        },
+        "max_results": {
+          "type": "number",
+          "description": "每个文件最多返回多少匹配。"
+        },
+        "head_limit": {
+          "type": "number",
+          "description": "返回的最大匹配数（全局上限，默认 250）。与 `max_results`（ripgrep `-m` 的单文件上限）不同，本字段截断合并后的总输出。"
+        },
+        "offset": {
+          "type": "number",
+          "description": "分页跳过前 N 个匹配。和 head_limit 配合用。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "pattern"
+      ]
+    }
+  },
+  {
+    "name": "glob_search",
+    "description": "按 glob 模式找 workspace 里的文件（如 \"**/*.ts\"、\"src/**/*.{ts,tsx}\"）。按修改时间倒序返回路径，默认尊重 .gitignore，排除 node_modules / .git 等。**用途**：已知文件名模式时定位文件。**不是**：按文件内容 regex 搜索；按自然语言含义探索；shell `find`；递归列目录代替搜索。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "glob_pattern": {
+          "type": "string",
+          "description": "通配符模式（譬如 `**/*.ts` / `src/**/*.{ts,tsx}` / `src/**/test_*.py`）。"
+        },
+        "target_directory": {
+          "type": "string",
+          "description": "搜索目录（相对 workspace 根目录或绝对路径）。省略时搜整个 workspace。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "glob_pattern"
+      ]
+    }
+  },
+  {
+    "name": "semantic_search",
+    "description": "在当前代码库中按自然语言**含义**搜索代码片段。**用途**：探索性「X 怎么工作 / Y 在哪处理」；不熟悉代码库、不知精确符号但知意图。**不是**：精确 regex 文本匹配；按文件名模式；跨 Space 表格/邮件/文档/向量的语义关联；TabDoc 文档标题关键词检索。用 target_directory / target_directories 限范围；省略则搜整个 repo。0 结果**不等于**概念不存在——索引覆盖或 similarity 阈值可能过滤；断言缺失前应用精确文本或文件名再验证。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "关于代码的自然语言问题，像跟同事提问那样问：「X 是怎么工作的？」、「Y 在哪处理？」、「Z 发生时会怎样？」"
+        },
+        "target_directory": {
+          "type": "string",
+          "description": "限定搜索范围的单个目录路径（譬如 `src/auth`）；缺省搜整个项目。"
+        },
+        "target_directories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "限定搜索范围的多个目录路径；缺省搜整个项目。"
+        },
+        "num_results": {
+          "type": "number",
+          "description": "返回结果数（1-15，默认 10）。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "query"
+      ]
+    }
+  },
+  {
+    "name": "mcp_call_tool",
+    "description": "调用当前 Space 已挂载 MCP server 上的工具。\n\n**用途**：执行外部 MCP 协议定义的工具调用。\n\n发现 server / tool schema / resources / prompts 见 system prompt 中的 CLI 能力说明。\n\n本工具**仅**负责实际调用；元数据发现走 CLI。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "server_name": {
+          "type": "string",
+          "description": "MCP server name (see CLI capabilities in system prompt)"
+        },
+        "connection_id": {
+          "type": "string",
+          "description": "MCP connection_id (alternative to server_name)"
+        },
+        "tool_name": {
+          "type": "string",
+          "description": "Exact MCP tool name to call (see CLI capabilities in system prompt)"
+        },
+        "arguments": {
+          "type": "object",
+          "description": "Arguments object to pass to the MCP tool",
+          "properties": {},
+          "required": []
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "tool_name"
+      ]
+    }
+  },
+  {
+    "name": "skill_invoke",
+    "description": "按 `canonical key` 调用本地 skill：正文作为 `user message` 注入，**你必须遵循**执行。\n\n**用途**：用户要求\"运行 / 执行 / 用上\"某 skill；任务明显匹配 skill 的 `when_to_use`。\n调用前应先读完该 skill 的完整正文。不支持 `section` 参数，不要尝试按 Markdown 标题段调用。\n\n**受限 mode**（plan / ask / study）下会被拒——skill 可写文件/调外部 API，需 Agent 模式。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "skill": {
+          "type": "string",
+          "description": "完整规范 key（譬如 `user:code-style-check`）。必须使用 `<skills>` 段展示的精确字串。"
+        },
+        "args": {
+          "type": "string",
+          "description": "可选参数，会替换 skill 正文里的 `$ARGUMENTS` 占位符。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "skill"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "skill_create",
+    "description": "在**当前 Space 的 skill 库**里创建一个新 skill。工具自己处理 `YAML frontmatter` + 文件写入，避开 shell heredoc 转义问题。skill 保存到 Space sandbox，**从下一条消息开始可用**。\n\n**什么时候用**：用户说\"把这个保存成 skill\" / \"做成一个 skill\" / \"记下这个流程让以后能复用\"等。\n\n**创建流程**：\n1. **先搜索去重**：`skills_search(意图关键词)`。已有相似 skill 时问用户要**更新**还是**新建**——不默认新建。\n2. **提取 kebab-case `slug`**：`[a-z0-9-]` ≤64 字符。用户用中文表达意图时从意图提炼出英文 slug（\"代码风格检查\" → `code-style-check`），保留中文作为 `name`。\n3. **必填**：`slug` + `name`（CJK 允许，UI / 对用户说话引用都用它）+ `description`（≤1024）+ `content`（Markdown）。可选：`when_to_use` / `version` / `compatibility` / `allowed_tools` / `paths`。\n4. **成功后必须告诉用户**：从**下一条消息开始**才出现在 `<skills>` 段（当前轮的 `<skills>` 已经采集完才写文件）。这是正常的，不要怀疑创建失败。\n\n**模式 / Space 约束**：\n- 仅 Agent / Group 模式 + 活跃 Space 下可用。\n- `plan` / `ask` / `study` 模式下**不能**调本工具——告诉用户你可以帮他起草内容，但他需切到 Agent 模式 + 在 Space 内才能保存。\n- 返回 \"Space 上下文缺失\" 错误 → 老实告诉用户没保存成功，不要重试。\n\n**用户说\"刚创建了但看不到\"** → 先 `skills_search` / `skills_read` 排查。常见原因：(1) `YAML frontmatter` 格式不对；(2) `slug` 非法字符；(3) Space 外创建。用人话告诉问题，除非用户问，不要回显原始元数据。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "description": "横杠形式的 skill 目录名（譬如 `code-review` / `daily-report`）；会成为规范 key 的后缀 `user:<slug>`。"
+        },
+        "name": {
+          "type": "string",
+          "description": "人类可读的 skill 名称（譬如\"代码审查\"），在 skill 面板和 Agent 对话里显示。"
+        },
+        "description": {
+          "type": "string",
+          "description": "skill 列表里的一句话描述（最多 1024 字符）。"
+        },
+        "when_to_use": {
+          "type": "string",
+          "description": "什么时候应该触发这个 skill（帮 Agent 决定何时调用）。"
+        },
+        "content": {
+          "type": "string",
+          "description": "完整 `SKILL.md` 正文（markdown 指令）。**不要**包含 YAML 头——会从其他参数自动生成。"
+        },
+        "allowed_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "可选：本 skill 允许使用的规范工具名列表（譬如 `[\"run_terminal_command\", \"read_file\"]`）。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "slug",
+        "name",
+        "description",
+        "content"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "personal_plugin_launch_runtime",
+    "description": "启动已安装并在当前 Space 启用的 Personal Plugin 本地 runtime。本工具会根据平台 registry 找到插件安装目录，在插件自己的安装目录中启动 local service，按需 attach MCP，并打开浏览器标签。不要用 shell 手动搜索或启动 Personal Plugin 脚本。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "pluginId": {
+          "type": "string",
+          "description": "Personal Plugin id, for example \"cowart\"."
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Optional local service id from the plugin manifest, for example \"canvas\"."
+        },
+        "title": {
+          "type": "string",
+          "description": "Optional title for the browser tab opened by the plugin runtime."
+        },
+        "openBrowser": {
+          "type": "boolean",
+          "description": "Whether TabTin should open the plugin local service URL in the in-app browser. Defaults to true."
+        },
+        "requireMcp": {
+          "type": "boolean",
+          "description": "Whether MCP attachment is required for this launch. Defaults to false."
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "pluginId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "agent",
+    "description": "启动一个子 Agent 独立处理某个任务。子 Agent 看不到父对话历史，只看你在 prompt 里写的内容；自己调工具，返回一条摘要。可并行的子任务用本工具——同一回复里调多次 agent 会并发跑。\n\n**何时 fork**：(1) 多步独立调研（譬如\"调研 A / B / C 三个候选方案\"并行）；(2) 上下文隔离能省 token（子 agent 读大文件返回摘要，主 agent 不带原文）；(3) 子 agent 失败不影响主任务的探索性工作；(4) 任务或工具调用可能产生大量结果上下文、而你只需结论或少量字段时 → 优先派子 Agent，让它在隔离上下文里消化原始输出，你只收摘要。\n\n**何时不 fork**：(1) 单步查询（一次 read_file / grep_search 就能解决） → 直接调工具；(2) 需要主 agent 实时跟用户交互的工作 → fork 后失去 ask_user 上下文；(3) 短链调用（≤3 步）→ 主 agent 自己跑反而快。\n\n用法：\n- 子 Agent 跑完只回你一条最终消息——你要它回报什么，就在 prompt 里讲清楚（要简短就说「200 字以内」）。\n- 明确告诉它你要它写代码 / 改东西，还是只做调研（搜索、读文件等）。\n- prompt 里说清目标、已知信息、范围边界，别让它替你做判断。\n- 每个子 Agent 完成（或失败）后，返回末尾带 [子 Agent ID: xxx]，是该子 Agent 的唯一标识。\n- 续跑/追问已结束的子 Agent：把它的 [子 Agent ID] 填到 `resume_agent_id`，它会读回之前积累的上下文（推理与产出）接着干——比重新派更省 token。注意两点：(a) 续跑**不保留之前工具调用的返回结果**（只保留它的推理与回复），它需要某个结果时会重新调用工具；(b) 续跑用本次调用自带的配置，**不继承原来那次的 readonly / model / tool_domains**——要保持只读或工具限制，本次必须重新传。\n- 后台跑：设 `background: true`，本工具立刻返回 [子 Agent ID]（不阻塞你），子 Agent 在后台独立跑完后你会收到一条带结果摘要的通知，到时再据 ID 续跑或汇总。适合「先派出去跑着、同时干别的」的长任务；要立刻拿到结果才能决定下一步时别设 background。\n- 查状态：用 `check_agent_id` 传某子 Agent 的 [子 Agent ID]，只查它的状态（含步数与最近工具），不派活。\n- 中断重定向：`interrupt: true` + `resume_agent_id` 中断一个仍在运行/排队的子 Agent，待它停下后用新 `prompt` 接续。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "给子 Agent 执行的任务（做什么 + 背景 + 输入 + 交付物 + 验收标准）；它看不到你的历史，要自包含。身份/角色放到 role 参数，别在 task 开头写「你是XX」。"
+        },
+        "description": {
+          "type": "string",
+          "description": "这个子 Agent 任务的简短标签（3-5 个词）。"
+        },
+        "role": {
+          "type": "string",
+          "description": "子 Agent 的角色名/身份（派发的「主语」——谁来做，如「科普撰稿人」「数据整理员」）；Group 派发务必填，用户在协作视图只看到这个名字。与 task 正交：task 写做什么，别在 task 里用「你是XX」重复身份。"
+        },
+        "model": {
+          "type": "string",
+          "description": "从工具说明「可用模型清单」选一个 id/alias 填入；缺省 = 跟父 Agent 一样。"
+        },
+        "tool_domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "可选的工具名子集；缺省时子 Agent 继承父 Agent 所有工具。"
+        },
+        "readonly": {
+          "type": "boolean",
+          "description": "true 时子 Agent 进只读问答模式，写操作由运行时硬拦。ask/plan/study 模式下必须 true；缺省继承父权限。"
+        },
+        "resume_agent_id": {
+          "type": "string",
+          "description": "传入之前某子 Agent 返回的 [子 Agent ID]，续跑/追问那个子 Agent：保留它已积累的上下文（推理与产出），把本次 prompt 作为新指令接续——比重新派一个子 Agent 更省 token、不丢它之前做过的工作。缺省时正常新派一个子 Agent。只能续跑已结束的子 Agent。"
+        },
+        "background": {
+          "type": "boolean",
+          "description": "true 时子 Agent 在后台跑，本工具立刻返回它的 [子 Agent ID]（不等它跑完），你可以继续做别的事；它完成后你会收到一条带结果摘要的通知。适合「派出去先跑着、同时干别的」的长任务；需要立刻拿结果再决定下一步时不要设。"
+        },
+        "interrupt": {
+          "type": "boolean",
+          "description": "配合 resume_agent_id 使用：true 时**中断**那个正在运行 / 排队中的子 Agent，等它真正停下后，再用本次 prompt 作为新指令重新接续它（中断 + 重定向）。目标子 Agent 已结束时等同普通续跑。缺省 / false：目标仍在运行则拒绝并发续跑。"
+        },
+        "check_agent_id": {
+          "type": "string",
+          "description": "只查询某个子 Agent 的当前状态、不派任何任务：传入它的 [子 Agent ID]，返回它是运行中 / 排队中 / 已完成 / 已失败 / 已取消，并附步数、最近工具、耗时等。设了本字段就只做查询——prompt 等派活参数会被忽略。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": []
+    }
+  },
+  {
+    "name": "relaunch_app",
+    "description": "重启 TabTin 宿主进程，让新授权的操作系统权限生效。**只在**用户说\"我授权了\"之后原工具调用仍失败时调本工具——大部分文件夹级授权（Desktop / Documents / Downloads / Removable / Network）立即生效，**不需要**重启。需要重启才生效的能力授权：Full Disk Access、屏幕录制、麦克风、摄像头、network entitlement、第三方杀毒白名单变更。不确定时先重试原工具；同样的操作系统错误再次出现，再调本工具。用户在对话里的回复**就是**重启的同意信号——**不要**主动调本工具。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "description": "为什么现在需要重启 TabTin（会落 telemetry）。典型：用户授予了 macOS 文件访问权限。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "clear_os_error_blacklist",
+    "description": "清除 runtime 缓存——这个缓存会阻止你重试之前遇到操作系统级错误的路径（TCC 拒绝、杀毒拦截、云占位符等）。**只在**用户在对话里确认他们处理了底层问题（授予权限、下载了文件、加入杀毒白名单）后调本工具。**不支持**整体清除——必须指定路径。语义：传用户说他授权的那个路径（如他提到的文件夹名）。清除会解锁该路径下记录的所有文件系统工具调用 + 所有子路径下记录的调用——匹配用户\"我授权了那个文件夹\"的意图（POSIX 上等同整个子树）。示例：用户授权了 \"~/Desktop\"。调用 clear({path:\"/Users/foo/Desktop\"}) 会解锁 \"/Users/foo/Desktop\"、\"/Users/foo/Desktop/a.png\"、\"/Users/foo/Desktop/screenshots/x.jpg\" 等所有条目，一次搞定。通常**不需要**为每个子文件单独调一次 clear。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "用户授权的那个路径（绝对路径）。清除会同时解锁该路径以及它所有子路径下记录的条目（POSIX 子树语义），不需要为每个子文件单独调用。"
+        },
+        "reason": {
+          "type": "string",
+          "description": "为什么认为底层问题已解决（譬如\"用户表示已授权并重启\"）。"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Brief reason why this tool is being called (shown to user in UI)."
+        }
+      },
+      "required": [
+        "path",
+        "reason"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

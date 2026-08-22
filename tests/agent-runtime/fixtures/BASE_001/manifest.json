@@ -1,0 +1,14 @@
+{
+  "caseId": "BASE_001",
+  "title": "验证 Agent 能通过 Skill 完成打开网页任务",
+  "module": "基础能力测试 / 浏览器操作",
+  "priority": "P0",
+  "initialPrompt": "## 任务\n打开百度网页\n\n请独立完成以上任务并汇报结果。如有合适的 Skill 可用，可自行搜索并调用（skills_search / skills_read）。",
+  "preconditions": [],
+  "sourceSessionId": "ccb3d4ed-16cf-4cc1-b26d-c055ea27b729",
+  "sourceSessionDir": "/Users/tabtin/Library/Application Support/TabTin/platform-data/organizations/f536a571-6c24-4adb-950d-fa1ce8094d7b/spaces/18721d88-d646-4085-b00b-f6a5b49c06a9/conversations/sessions/ccb3d4ed-16cf-4cc1-b26d-c055ea27b729",
+  "sourceCommit": null,
+  "acceptedAt": "2026-07-05T05:58:58.619Z",
+  "acceptedBy": null,
+  "acceptanceSummary": "人工确认 Agent 成功打开百度并给出正确最终回复"
+}
