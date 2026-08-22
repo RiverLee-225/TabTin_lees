@@ -1,0 +1,41 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "已完成。百度网页已成功打开，结果如下：\n\n| 项目 | 详情 |\n|------|------|\n| **目标 URL** | https://www.baidu.com |\n| **最终页面** | https://www.baidu.com/ |\n| **加载状态** | loaded（成功） |\n| **加载耗时** | 约 1.9 秒 |\n| **标签页 ID** | view-cs-scope-...-<epoch-ms> |\n\n网页已在浏览器中加载完成，你现在可以在 TabWeb 浏览器标签页中看到百度首页。",
+    "messagesShape": [
+      "user:user_input",
+      "assistant:history",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "todo_write"
+      },
+      {
+        "name": "skills_read"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "todo_write"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "todo_write"
+      }
+    ]
+  }
+}

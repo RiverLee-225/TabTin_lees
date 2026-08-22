@@ -1,0 +1,16 @@
+{
+  "caseId": "BASE_007_02",
+  "title": "验证跨轮上下文保持（变量/实体延续） 02",
+  "module": "未分类",
+  "priority": "P1",
+  "initialPrompt": "创建一个 TabDoc，标题用刚才的代号加后缀 -doc",
+  "preconditions": [],
+  "sourceSessionId": "0c1a8f09-7903-4309-b212-ce92947c7501",
+  "sourceSessionDir": "/Users/tabtin/Library/Application Support/TabTin/platform-data/organizations/de83c97a-7354-4123-a1d1-4b2e9c15a8e1/spaces/5551c0ae-bd4a-47d4-8027-1a1618b01593/conversations/sessions/0c1a8f09-7903-4309-b212-ce92947c7501",
+  "sourceRunId": "7b45b90b-a4fd-4241-983e-06e6c1775bf8",
+  "sourceRunIndex": 2,
+  "sourceCommit": "129f974f0eddd7a31524071ba110ae132f156d68",
+  "acceptedAt": "2026-07-06T06:27:24.216Z",
+  "acceptedBy": null,
+  "acceptanceSummary": ""
+}

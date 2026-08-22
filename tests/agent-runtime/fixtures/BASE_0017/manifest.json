@@ -1,0 +1,16 @@
+{
+  "caseId": "BASE_0017",
+  "title": "验证格式错误指令（JSON/CLI 参数）",
+  "module": "未分类",
+  "priority": "P1",
+  "initialPrompt": "往花名册表插入 {name: 张三, age: }（故意非法 JSON）",
+  "preconditions": [],
+  "sourceSessionId": "f124942a-8fad-4746-9372-4cf096cc5515",
+  "sourceSessionDir": "/Users/tabtin/Library/Application Support/TabTin/platform-data/organizations/06d00945-77d6-4ad1-bcaf-bbcd50467b84/spaces/0585e9ff-1120-45d5-b7f8-9d72360c0da6/conversations/sessions/f124942a-8fad-4746-9372-4cf096cc5515",
+  "sourceRunId": "5f990e8f-6962-4c41-90ca-a2a4afe1eece",
+  "sourceRunIndex": 1,
+  "sourceCommit": "129f974f0eddd7a31524071ba110ae132f156d68",
+  "acceptedAt": "2026-07-06T12:44:31.344Z",
+  "acceptedBy": null,
+  "acceptanceSummary": ""
+}

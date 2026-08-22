@@ -1,0 +1,34 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "刚才查的是 **上海** 的天气，未来七天预报如下：\n\n| 日期 | 天气 | 气温 | 风向风力 |\n|------|------|------|----------|\n| **07/06 周一（今天）** | 小雨 | 26°C ~ 34°C | 东南风 <3级 |\n| **07/07 周二** | 小雨 | 27°C ~ 34°C | 南风 3-4级 |\n| **07/08 周三** | 小雨转阴 | 26°C ~ 35°C | 东南风 <3级 |\n| **07/09 周四** | 阴转小雨 | 26°C ~ 33°C | 东南风 3-4级 |\n| **07/10 周五** | 小雨 | 26°C ~ 32°C | 东南风 3-4级 |\n| **07/11 周六** | 小雨 | 26°C ~ 32°C | 东南风 3-4级 |\n| **07/12 周日** | 小雨 | 26°C ~ 32°C | 东南风 3-4级 |\n\n**⚠️ 提醒**：本周上海以阴雨为主，周三最高温可达 **35°C**，体感闷热，出门记得带伞、注意防暑补水。\n\n如果你需要查看其他城市或更详细的天气信息，告诉我城市名即可。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:history",
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:history",
+      "user:user_input",
+      "user:user_input",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "web_search"
+      },
+      {
+        "name": "run_terminal_command"
+      }
+    ]
+  }
+}

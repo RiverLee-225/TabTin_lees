@@ -1,0 +1,22 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "无法读取该文件，因为 **`/nonexistent/path/xyz999.txt` 不存在**。\n\n当前你的工作目录是 `<home>/TabTin/22/macspace`。如果你需要查找文件，可以：\n\n1. **确认路径是否正确** — 是否拼写错误或文件名不同？\n2. **在当前 workspace 中搜索** — 告诉我文件名或关键词，我可以帮你搜索\n3. **查看 workspace 中的文件列表** — 我可以列出当前目录下的文件\n\n需要我帮你查找某个具体文件吗？",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "read_file"
+      }
+    ]
+  }
+}

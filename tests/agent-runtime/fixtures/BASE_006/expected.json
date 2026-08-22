@@ -1,0 +1,22 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "两者的核心区别在于**作用范围**和**适用场景**：\n\n| 维度 | `save-content`（整篇保存） | `append` / `insert-block`（块级追加） |\n|------|---------------------------|--------------------------------------|\n| **作用范围** | **整篇替换**，覆盖全文所有内容 | **只动目标块**，其余内容完全不动 |\n| **适用场景** | 大改、整篇重写、从无到有生成文档 | 追加一段、插入一行、局部小修小补 |\n| **数据传输** | 需传输整篇 Markdown，内容量大 | 只传要插入/追加的那一段，轻量 |\n| **协作安全** | 覆盖式写入，容易误改他人编辑的段落，冲突面大 | 精准操作，不影响文档其他部分，更安全 |\n| **Token 消耗** | 高（通常需要先 read 全文再 save） | 低（无需读取全文） |\n\n**简单口诀**：\n\n- **加一段 / 改一段 / 删一段** → 用 `append`、`insert-block`、`update-block`、`delete-block` 等 **block 命令**\n- **整篇重写 / 大篇幅改动** → 才用 `save-content`\n\n**典型误用**：\n\n❌ 以前的做法：先 `read` 读全文 → 本地拼接追加内容 → `save-content` 整篇写回  \n✅ 现在的推荐：直接 `append` 或 `insert-block` 追加目标段落\n\n这样既能省 token，也能避免在协作场景下意外覆盖别人刚改的内容。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "skills_read"
+      }
+    ]
+  }
+}

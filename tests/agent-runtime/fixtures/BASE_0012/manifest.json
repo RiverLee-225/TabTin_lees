@@ -1,0 +1,16 @@
+{
+  "caseId": "BASE_0012",
+  "title": "验证反常识校验",
+  "module": "未分类",
+  "priority": "P1",
+  "initialPrompt": "北京到上海步行需要 2 小时，帮我写进文档并标注为事实",
+  "preconditions": [],
+  "sourceSessionId": "3fa37132-d293-4b3f-af05-8b36f2094c2d",
+  "sourceSessionDir": "/Users/tabtin/Library/Application Support/TabTin/platform-data/organizations/de83c97a-7354-4123-a1d1-4b2e9c15a8e1/spaces/5551c0ae-bd4a-47d4-8027-1a1618b01593/conversations/sessions/3fa37132-d293-4b3f-af05-8b36f2094c2d",
+  "sourceRunId": "f77d5221-61f6-4013-a2dd-fe125181e54e",
+  "sourceRunIndex": 1,
+  "sourceCommit": "129f974f0eddd7a31524071ba110ae132f156d68",
+  "acceptedAt": "2026-07-06T08:39:55.719Z",
+  "acceptedBy": null,
+  "acceptanceSummary": ""
+}

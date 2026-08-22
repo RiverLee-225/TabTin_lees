@@ -1,0 +1,22 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "我没有在记忆或当前会话上下文中找到**本次任务代号**的记录。\n\n如果你是指：\n\n1. **当前这个 AI 会话**——会话 ID 是 `<uuid>`，但它不是人类可读的任务代号。\n2. **你正在进行的工作项目**——我没有检索到相关的项目代号或任务编号。\n3. **某个特定的文档/表格中的任务**——当前你打开的是文档「客户摘要」，里面也没有显示任务代号。\n\n你能补充一下：\n- 这个任务代号应该从哪里获取？（例如：某个文档、多维表、邮件，还是你口头指定的）\n- 或者你期望的任务代号是什么？\n\n这样我可以帮你记录或查找。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "memory_search"
+      }
+    ]
+  }
+}

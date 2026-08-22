@@ -1,0 +1,34 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "本次任务代号是 **ALPHA-2026**。基于这个代号创建的文档标题为 `ALPHA-2026-doc`。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:history",
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:history",
+      "user:user_input",
+      "user:user_input",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      }
+    ]
+  }
+}

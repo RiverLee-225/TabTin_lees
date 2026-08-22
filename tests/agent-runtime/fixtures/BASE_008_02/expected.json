@@ -1,0 +1,30 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "已完成。在 `probe-multi-step` 目录下创建了 `hello.txt`，内容为 `hello`。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:history",
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "write_file"
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "收到，任务代号 **ALPHA-2026** 已记录。\n\n请问这个任务具体要做什么？比如：\n- 是新建一个项目/计划来跟踪？\n- 还是需要从某个数据源采集信息？\n- 或者是执行一系列操作步骤？\n\n告诉我具体目标，我就可以开始执行了。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:history"
+    ],
+    "toolCalls": []
+  }
+}

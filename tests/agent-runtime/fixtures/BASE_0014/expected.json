@@ -1,0 +1,30 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "查询结果如下：\n\n| id | name |\n|---|---|\n| 48 | 探针产品A |\n\n「产品」表中 name 包含\"探针\"的记录共 **1 条**。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      }
+    ]
+  }
+}

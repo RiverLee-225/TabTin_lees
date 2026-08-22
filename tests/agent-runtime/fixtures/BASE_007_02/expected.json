@@ -1,0 +1,29 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "文档已创建成功。\n\n- **标题**：ALPHA-2026-doc\n- **ID**：`<uuid>`\n\n你可以在「文档」App 中打开并继续编辑。需要我往里写入什么内容吗？",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:history",
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "run_terminal_command"
+      },
+      {
+        "name": "run_terminal_command"
+      }
+    ]
+  }
+}

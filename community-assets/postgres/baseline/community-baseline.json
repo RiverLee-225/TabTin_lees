@@ -1,0 +1,11 @@
+{
+  "format_version": 1,
+  "postgres_major": 16,
+  "stage": "post_migrate_pre_bootstrap",
+  "migration_count": 1026,
+  "table_count": 341,
+  "dump_file": "community-baseline.dump",
+  "toc_file": "community-baseline.list",
+  "dump_sha256": "e8460f3c4893970ea47d06775b504c3ae1cd5d387c99940039dd50ef0e4ad1f8",
+  "toc_sha256": "365d4c1f1d73649fa7311707f19e0fbf9050c6b039f154ff521f206497d45437"
+}

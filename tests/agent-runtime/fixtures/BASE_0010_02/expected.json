@@ -1,0 +1,30 @@
+{
+  "invariants": {
+    "toolUseResultPairsComplete": true,
+    "eventLifecycleValid": true,
+    "noRealToolExecution": true,
+    "toolInputsSchemaValid": true
+  },
+  "normalizedSnapshot": {
+    "finalAssistantText": "当前 Space 根目录下共有 **2 个**文件/目录（不足 5 个），分别是：\n\n1. **TabTin-项目介绍.md**\n2. **probe-multi-step**\n\n> 根目录下目前只有这 2 项，还没有更多文件。如需查看更多内容或子目录中的文件，可以告诉我。",
+    "messagesShape": [
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_use",
+      "user:tool_result",
+      "assistant:history",
+      "user:user_input",
+      "user:user_input",
+      "assistant:tool_result",
+      "assistant:history"
+    ],
+    "toolCalls": [
+      {
+        "name": "web_search"
+      },
+      {
+        "name": "run_terminal_command"
+      }
+    ]
+  }
+}

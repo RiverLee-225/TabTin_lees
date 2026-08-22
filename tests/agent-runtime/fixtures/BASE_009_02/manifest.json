@@ -1,0 +1,16 @@
+{
+  "caseId": "BASE_009_02",
+  "title": "验证跨轮信息关联（前文表格 → 后文文档引用） 02",
+  "module": "未分类",
+  "priority": "P1",
+  "initialPrompt": "把这三个客户写进新 TabDoc【客户摘要】，每人一段",
+  "preconditions": [],
+  "sourceSessionId": "7c0ded72-5ce7-4dc1-a8bb-cfa22f1724f1",
+  "sourceSessionDir": "/Users/tabtin/Library/Application Support/TabTin/platform-data/organizations/de83c97a-7354-4123-a1d1-4b2e9c15a8e1/spaces/5551c0ae-bd4a-47d4-8027-1a1618b01593/conversations/sessions/7c0ded72-5ce7-4dc1-a8bb-cfa22f1724f1",
+  "sourceRunId": "cb77ca69-e66c-42da-b691-3d51f77cf6e5",
+  "sourceRunIndex": 2,
+  "sourceCommit": "129f974f0eddd7a31524071ba110ae132f156d68",
+  "acceptedAt": "2026-07-06T06:57:58.041Z",
+  "acceptedBy": null,
+  "acceptanceSummary": ""
+}

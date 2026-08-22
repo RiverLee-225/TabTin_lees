@@ -1,0 +1,16 @@
+{
+  "caseId": "BASE_0014",
+  "title": "验证 TabData 查询结果与 UI/API 一致",
+  "module": "未分类",
+  "priority": "P1",
+  "initialPrompt": "查产品表 name 包含探针的记录，列 id 和 name",
+  "preconditions": [],
+  "sourceSessionId": "f1c51d87-dcc8-4e12-9c25-3dd7fe079d4d",
+  "sourceSessionDir": "/Users/tabtin/Library/Application Support/TabTin/platform-data/organizations/06d00945-77d6-4ad1-bcaf-bbcd50467b84/spaces/0585e9ff-1120-45d5-b7f8-9d72360c0da6/conversations/sessions/f1c51d87-dcc8-4e12-9c25-3dd7fe079d4d",
+  "sourceRunId": "a68827d0-df60-4681-a1e4-81ad71a5464e",
+  "sourceRunIndex": 1,
+  "sourceCommit": "129f974f0eddd7a31524071ba110ae132f156d68",
+  "acceptedAt": "2026-07-06T11:45:54.820Z",
+  "acceptedBy": null,
+  "acceptanceSummary": ""
+}
